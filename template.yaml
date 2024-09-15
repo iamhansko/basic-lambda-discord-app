@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS Lambda Discord App
+
+Parameters:
+  DiscordPublicKey:
+    Type: String
+    Default: ""
+
+Globals:
+  Function:
+    Timeout: 480
+    MemorySize: 1024
+    Environment:
+      Variables:
+        DiscordPublicKey: !Ref DiscordPublicKey
+
+Resources:
+  AWSLambdaDiscordAppFunctionRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: AWSLambdaDiscordAppFunctionRole
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: DiscordAppFunctionPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - lambda:InvokeFunction
+                    - lambda:InvokeAsync
+                  Resource: "*"
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource: "*"
+  
+  LambdaLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: LambdaLayer
+      Description: Python Lambda Layer
+      ContentUri: ./layer.zip
+      CompatibleRuntimes:
+        - python3.10
+  
+  AWSLambdaDiscordAppFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_handler
+      Runtime: python3.10
+      CodeUri: ./src
+      Layers:
+        - !Ref LambdaLayer
+      Description: Discord App Function
+      Role: !GetAtt AWSLambdaDiscordAppFunctionRole.Arn
+      Events:
+        Interactions:
+          Type: Api
+          Properties:
+            Path: /interactions
+            Method: POST
+
+Outputs:
+  DiscordAppFunction:
+    Description: "Discord App Function ARN"
+    Value: !GetAtt AWSLambdaDiscordAppFunction.Arn
+  DiscordAppFunctionRole:
+    Description: "IAM Role for Discord App Function"
+    Value: !GetAtt AWSLambdaDiscordAppFunctionRole.Arn
