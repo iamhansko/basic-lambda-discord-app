@@ -19,7 +19,6 @@ def lambda_handler(event, context):
 
     body = json.loads(raw_body)
     if body["type"] == 1:
-        print("PONG")
         return {
             'statusCode': 200,
             'body': json.dumps(
@@ -28,9 +27,6 @@ def lambda_handler(event, context):
                 }
             )
         }
-
-    print(event)
-    print(body)
 
     command = body['data']['name']
     if command == "cat":
